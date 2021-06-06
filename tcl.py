@@ -46,7 +46,7 @@ def t_runprocess(cmd, t_vars, t_proc, scope):
   assert given_args == needed_arg_len or given_args == len(parsed_args)
   
   t_vars.new_instance()
-  t_proc.new_instance()
+  #t_proc.new_instance()
   
   scope += 1
   
@@ -114,7 +114,7 @@ def process_word(word, t_vars, t_proc, exec_level):
     cmd_to_run = word['COMMAND_SUB'][1:-1]
     #print(lexer.lextcl(cmd_to_run))
     t_vars.new_instance()
-    t_proc.new_instance()
+    #t_proc.new_instance()
     return runTCLcmds(cmd_to_run, t_vars, t_proc, exec_level)
   else:
     raise SystemExit(f"can't handle type {word}")
@@ -138,14 +138,14 @@ def runTCLcmds(t_code, t_vars, t_proc, exec_level):
       return cmd[1]
     elif cmd[0] == 'eval': # evaluate an expression, typically a math expression
       last_result = str(tclmath.eval_math_expr(cmd[1]))
-    elif t_proc.has_process(cmd[0], exec_level): # try user defined procedures before failing out
+    elif t_proc.has_process(cmd[0], 0): # try user defined procedures before failing out, im doing global processes for now because it makes more sense
       last_result = t_runprocess(cmd, t_vars, t_proc, exec_level)
     else:
       raise SystemExit(f"unknown command {cmd}")
     #print(cmd)
   
   t_vars.drop_instance()
-  t_proc.drop_instance()
+  #t_proc.drop_instance()
   return last_result
   
 # read in tcl code from a file

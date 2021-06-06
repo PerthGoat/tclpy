@@ -1,9 +1,10 @@
 proc showTest {x y} {
-	set x [eval $x]
-	return $x
+	return [eval $x+$y]
 }
 
-set x 5
-set y 1
+proc fib {a} {
+	puts [showTest 0 1]
+}
 
-puts $x*$y
+#puts [showTest 0 1]
+fib 1

@@ -13,3 +13,6 @@ def t_set(cmd, t_vars, scope):
     t_vars.set_variable(name, val, scope)
   
   return t_vars.get_variable(name, scope)
+
+def t_puts(cmd):
+  print(' '.join(cmd[1:]))

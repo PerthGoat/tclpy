@@ -1,2 +1,2 @@
 set x abc
-puts $x
+puts [set y agg]

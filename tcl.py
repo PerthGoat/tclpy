@@ -1,6 +1,38 @@
 import lexer
 from variables import VAR_STACK
-import tclcmds
+
+# command functions
+
+def t_set(cmd, t_vars, scope):
+  # make sure passed a set
+  assert cmd[0] == 'set'
+  
+  # make sure arguments less than or equal to 2, but greater than 0
+  arguments = len(cmd) - 1
+  
+  assert arguments <= 2 and arguments != 0
+  
+  name = cmd[1]
+  if len(cmd) == 3:
+    val = cmd[2]
+    t_vars.set_variable(name, val, scope)
+  
+  return t_vars.get_variable(name, scope)
+
+def t_puts(cmd):
+  assert cmd[0] == 'put'
+  assert len(cmd) > 1
+  print(' '.join(cmd[1:]))
+
+def t_proc(cmd, t_vars, scope):
+  assert cmd[0] == 'proc'
+  assert len(cmd) == 4
+  
+  name = cmd[1]
+  args = cmd[2]
+  body = cmd[3]
+  print(name, args, body)
+  t_vars._dpa()
 
 # current execution nesting level
 exec_level = 0
@@ -40,9 +72,16 @@ def runTCLcmds(t_code, t_vars):
     cmd = [process_word(c, vs) for c in cmd]
     # command parse tree now begins here
     if cmd[0] == 'set': # set command
-      last_result = tclcmds.t_set(cmd, vs, exec_level)
+      last_result = t_set(cmd, vs, exec_level)
     elif cmd[0] == 'puts': # put command
-      last_result = tclcmds.t_puts(cmd)
+      last_result = t_puts(cmd)
+    elif cmd[0] == 'proc': # proc command
+      vs.new_instance()
+      last_result = t_proc(cmd, vs, exec_level + 1)
+      vs.drop_instance()
+      raise SystemExit("agga")
+    else:
+      raise SystemExit(f"unknown command {cmd}")
     print(cmd)
   return last_result
   

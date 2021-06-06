@@ -1,2 +1,3 @@
-set x abc
-puts [set y agg]
+proc showTest {} {
+	puts "Hello"
+}

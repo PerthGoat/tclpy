@@ -1,4 +1,5 @@
 
+# shared variable stack
 class VAR_STACK:
   
   def __init__(self):
@@ -23,3 +24,14 @@ class VAR_STACK:
   # debug print all variables
   def _dpa(self):
     [print(v) for v in self.V_STACK]
+
+# shared user defined process stack
+class PROC_STACK(VAR_STACK):
+  
+  # set a variable at a particular level
+  def set_process(self, name, value, level):
+    self.V_STACK[level][name] = value
+  
+  # get a variable at a particular level
+  def get_process(self, name, level):
+    return self.V_STACK[level][name]

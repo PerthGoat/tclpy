@@ -85,26 +85,24 @@ def process_word(word, t_vars, t_proc, exec_level):
     return word['SAFE_BRACES']
   elif 'VAR_SUB' in word: # the variable substitution
     # try substitution here
-    for c in word['VAR_SUB'][1:]:
+    # remove $
+    word['VAR_SUB'] = word['VAR_SUB'][1:]
+    if word['VAR_SUB'] == '':
+      return ''
+    # split up chained var subs
+    for c in word['VAR_SUB']:
       if not c.isalnum():
         ind = word['VAR_SUB'].index(c)
-        lh = lexer.lextcl(word['VAR_SUB'][0:ind])[0][0]
-        rh = lexer.lextcl(word['VAR_SUB'][ind:])[0]
+        lh = {'VAR_SUB':'$' + word['VAR_SUB'][0:ind]}
+        rh = {'VAR_SUB':word['VAR_SUB'][ind:]}
+        rh = process_word(rh, t_vars, t_proc, exec_level)
         
-        nrh = ''
-        for r in rh:
-          nrh += process_word(r, t_vars, t_proc, exec_level)
+        if c == '$':
+          c = ''
         
-        #rh = lexer.lextcl(rh)[0]
-        #nrh = ''
-        #for r in rh:
-        #  nrh += process_word(r, t_vars, t_proc, exec_level)
+        return process_word(lh, t_vars, t_proc, exec_level) + c + rh
         
-        #print(nrh)
-        
-        return process_word(lh, t_vars, t_proc, exec_level) + nrh
-        
-    return t_vars.get_variable(word['VAR_SUB'][1:], exec_level)
+    return t_vars.get_variable(word['VAR_SUB'], exec_level)
   elif 'QUOTED_WORD' in word: # in this case I need to do some tricky lexing
     orig_word = word['QUOTED_WORD'][1:-1]
     degraded = lexer.lextcl(word['QUOTED_WORD'][1:-1])[0] # downgrade out of the quotes using the lexer

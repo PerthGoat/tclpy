@@ -1,6 +1,9 @@
-proc showTest {varName {arg2 10}} {
-	puts $varName
-	return [eval $arg2*2]
+proc showTest {x y} {
+	set x [eval $x]
+	return $x
 }
 
-puts [showTest hi]
+set x 5
+set y 1
+
+puts $x*$y

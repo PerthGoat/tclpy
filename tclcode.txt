@@ -1,7 +1,6 @@
 proc showTest {varName {arg2 10}} {
-	#puts $varName
-	#puts $arg2
-	return $arg2
+	puts $varName
+	return [eval $arg2*2]
 }
 
-puts [eval 2+2]
+puts [showTest hi]

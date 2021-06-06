@@ -85,16 +85,36 @@ def process_word(word, t_vars, t_proc, exec_level):
     return word['SAFE_BRACES']
   elif 'VAR_SUB' in word: # the variable substitution
     # try substitution here
+    for c in word['VAR_SUB'][1:]:
+      if not c.isalnum():
+        ind = word['VAR_SUB'].index(c)
+        lh = lexer.lextcl(word['VAR_SUB'][0:ind])[0][0]
+        rh = lexer.lextcl(word['VAR_SUB'][ind:])[0]
+        
+        nrh = ''
+        for r in rh:
+          nrh += process_word(r, t_vars, t_proc, exec_level)
+        
+        #rh = lexer.lextcl(rh)[0]
+        #nrh = ''
+        #for r in rh:
+        #  nrh += process_word(r, t_vars, t_proc, exec_level)
+        
+        #print(nrh)
+        
+        return process_word(lh, t_vars, t_proc, exec_level) + nrh
+        
     return t_vars.get_variable(word['VAR_SUB'][1:], exec_level)
   elif 'QUOTED_WORD' in word: # in this case I need to do some tricky lexing
     orig_word = word['QUOTED_WORD'][1:-1]
     degraded = lexer.lextcl(word['QUOTED_WORD'][1:-1])[0] # downgrade out of the quotes using the lexer
     for d in degraded: # and so any subs needed
       if 'VAR_SUB' in d:
-        orig_word = orig_word.replace(d['VAR_SUB'], process_word(d, t_vars))
+        orig_word = orig_word.replace(d['VAR_SUB'], process_word(d, t_vars, t_proc, exec_level))
     return orig_word
   elif 'COMMAND_SUB' in word:
     cmd_to_run = word['COMMAND_SUB'][1:-1]
+    #print(lexer.lextcl(cmd_to_run))
     t_vars.new_instance()
     t_proc.new_instance()
     return runTCLcmds(cmd_to_run, t_vars, t_proc, exec_level)
@@ -116,6 +136,7 @@ def runTCLcmds(t_code, t_vars, t_proc, exec_level):
     elif cmd[0] == 'proc': # proc command
       last_result = t_userproc(cmd, t_vars, t_proc, exec_level)
     elif cmd[0] == 'return': # immediately return the value
+      #print(cmd)
       return cmd[1]
     elif cmd[0] == 'eval': # evaluate an expression, typically a math expression
       last_result = str(tclmath.eval_math_expr(cmd[1]))

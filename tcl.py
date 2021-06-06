@@ -30,7 +30,7 @@ def t_userproc(cmd, t_vars, t_proc, scope):
   
   name = cmd[1]
   args = cmd[2][1:-1].strip()
-  body = cmd[3][1:-1].strip()
+  body = cmd[3][1:-1].replace('\t', '').strip()
   t_proc.set_process(name, [args, body], scope)
   #t_proc._dpa()
 
@@ -68,7 +68,6 @@ def t_runprocess(cmd, t_vars, t_proc, scope):
         val = cmd[1 + it]
         it += 1
       t_vars.set_variable(name, val, scope)
-  
   return runTCLcmds(user_cmd[1], t_vars, t_proc, scope)
   
 
@@ -102,13 +101,11 @@ def process_word(word, t_vars, t_proc, exec_level):
 
 def runTCLcmds(t_code, t_vars, t_proc, exec_level):
   parsed_tcl = lexer.lextcl(t_code)
-  
   # return the last result
   last_result = None
   
   for cmd in parsed_tcl:
     cmd = [process_word(c, t_vars, t_proc, exec_level) for c in cmd]
-    cmd[0] = cmd[0].strip() # makes the command never have crud on it
     # command parse tree now begins here
     if cmd[0] == 'set': # set command
       last_result = t_set(cmd, t_vars, exec_level)
@@ -116,6 +113,8 @@ def runTCLcmds(t_code, t_vars, t_proc, exec_level):
       last_result = t_puts(cmd)
     elif cmd[0] == 'proc': # proc command
       last_result = t_userproc(cmd, t_vars, t_proc, exec_level)
+    elif cmd[0] == 'return': # immediately return the value
+      return cmd[1]
     elif t_proc.has_process(cmd[0], exec_level): # try user defined procedures before failing out
       last_result = t_runprocess(cmd, t_vars, t_proc, exec_level)
     else:

@@ -1,3 +1,5 @@
-proc showTest {} {
-	puts "Hello"
+proc showTest {varName {arg2 10}} {
+	puts $varName
 }
+
+showTest hello 22

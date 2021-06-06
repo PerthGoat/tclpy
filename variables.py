@@ -35,3 +35,8 @@ class PROC_STACK(VAR_STACK):
   # get a variable at a particular level
   def get_process(self, name, level):
     return self.V_STACK[level][name]
+  
+  # returns if a process exists
+  # True is yes, False is no
+  def has_process(self, name, level):
+    return name in self.V_STACK[level]

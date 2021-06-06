@@ -68,7 +68,8 @@ def t_runprocess(cmd, t_vars, t_proc, scope):
         val = cmd[1 + it]
         it += 1
       t_vars.set_variable(name, val, scope)
-  t_vars._dpa()
+  
+  return runTCLcmds(user_cmd[1], t_vars, t_proc, scope)
   
 
 # current execution nesting level
@@ -107,6 +108,7 @@ def runTCLcmds(t_code, t_vars, t_proc, exec_level):
   
   for cmd in parsed_tcl:
     cmd = [process_word(c, t_vars, t_proc, exec_level) for c in cmd]
+    cmd[0] = cmd[0].strip() # makes the command never have crud on it
     # command parse tree now begins here
     if cmd[0] == 'set': # set command
       last_result = t_set(cmd, t_vars, exec_level)
@@ -115,15 +117,7 @@ def runTCLcmds(t_code, t_vars, t_proc, exec_level):
     elif cmd[0] == 'proc': # proc command
       last_result = t_userproc(cmd, t_vars, t_proc, exec_level)
     elif t_proc.has_process(cmd[0], exec_level): # try user defined procedures before failing out
-      #last_result = t_runprocess(cmd, t_vars, t_proc, exec_level)
-      #user_cmd = t_proc.get_process(cmd[0], exec_level)
-      #pargs = user_cmd[0]
-      #parseArgList(pargs)
-      #pbody = user_cmd[1]
-      #last_result = runTCLcmds(pbody, t_vars, t_proc, exec_level + 1)
-      #print(pbody)
       last_result = t_runprocess(cmd, t_vars, t_proc, exec_level)
-      raise SystemExit("agga")
     else:
       raise SystemExit(f"unknown command {cmd}")
     #print(cmd)

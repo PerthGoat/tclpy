@@ -4,4 +4,4 @@ proc showTest {varName {arg2 10}} {
 	return $arg2
 }
 
-puts [showTest hello]
+puts [eval 2+2]

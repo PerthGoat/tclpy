@@ -1,4 +1,5 @@
 import lexer
+import tclmath
 from variables import VAR_STACK, PROC_STACK
 
 # command functions
@@ -94,7 +95,8 @@ def process_word(word, t_vars, t_proc, exec_level):
     return orig_word
   elif 'COMMAND_SUB' in word:
     cmd_to_run = word['COMMAND_SUB'][1:-1]
-    
+    t_vars.new_instance()
+    t_proc.new_instance()
     return runTCLcmds(cmd_to_run, t_vars, t_proc, exec_level)
   else:
     raise SystemExit(f"can't handle type {word}")
@@ -115,6 +117,8 @@ def runTCLcmds(t_code, t_vars, t_proc, exec_level):
       last_result = t_userproc(cmd, t_vars, t_proc, exec_level)
     elif cmd[0] == 'return': # immediately return the value
       return cmd[1]
+    elif cmd[0] == 'eval': # evaluate an expression, typically a math expression
+      last_result = str(tclmath.eval_math_expr(cmd[1]))
     elif t_proc.has_process(cmd[0], exec_level): # try user defined procedures before failing out
       last_result = t_runprocess(cmd, t_vars, t_proc, exec_level)
     else:

@@ -1,5 +1,5 @@
 import lexer
-from variables import VAR_STACK
+from variables import VAR_STACK, PROC_STACK
 
 # command functions
 
@@ -24,21 +24,21 @@ def t_puts(cmd):
   assert len(cmd) > 1
   print(' '.join(cmd[1:]))
 
-def t_proc(cmd, t_vars, scope):
+def t_userproc(cmd, t_vars, t_proc, scope):
   assert cmd[0] == 'proc'
   assert len(cmd) == 4
   
   name = cmd[1]
   args = cmd[2]
   body = cmd[3]
-  print(name, args, body)
-  t_vars._dpa()
+  t_proc.set_process(name, [args, body], scope)
+  t_proc._dpa()
 
 # current execution nesting level
 exec_level = 0
 
 # process a chunk
-def process_word(word, t_vars):
+def process_word(word, t_vars, t_proc):
   # the most traditional of words
   # return with no special stuff
   if 'WORD' in word:
@@ -58,27 +58,27 @@ def process_word(word, t_vars):
   elif 'COMMAND_SUB' in word:
     cmd_to_run = word['COMMAND_SUB'][1:-1]
     
-    return runTCLcmds(cmd_to_run, t_vars)
+    return runTCLcmds(cmd_to_run, t_vars, t_proc)
   else:
     raise SystemExit(f"can't handle type {word}")
 
-def runTCLcmds(t_code, t_vars):
+def runTCLcmds(t_code, t_vars, t_proc):
   parsed_tcl = lexer.lextcl(t_code)
   
   # return the last result
   last_result = None
   
   for cmd in parsed_tcl:
-    cmd = [process_word(c, vs) for c in cmd]
+    cmd = [process_word(c, t_vars, t_proc) for c in cmd]
     # command parse tree now begins here
     if cmd[0] == 'set': # set command
-      last_result = t_set(cmd, vs, exec_level)
+      last_result = t_set(cmd, t_vars, exec_level)
     elif cmd[0] == 'puts': # put command
       last_result = t_puts(cmd)
     elif cmd[0] == 'proc': # proc command
-      vs.new_instance()
-      last_result = t_proc(cmd, vs, exec_level + 1)
-      vs.drop_instance()
+      t_vars.new_instance()
+      last_result = t_userproc(cmd, t_vars, t_proc, exec_level)
+      t_vars.drop_instance()
       raise SystemExit("agga")
     else:
       raise SystemExit(f"unknown command {cmd}")
@@ -94,8 +94,12 @@ with open('tclcode.txt', 'r') as file:
 vs = VAR_STACK()
 vs.new_instance()
 
+# initialize a new user-defined process stack
+ps = PROC_STACK()
+ps.new_instance()
+
 # run the tclcode
-runTCLcmds(tcl_code, vs)
+runTCLcmds(tcl_code, vs, ps)
 
 
 #vs._dpa()

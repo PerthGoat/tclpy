@@ -2,8 +2,11 @@ import tclparse
 import tclstate
 
 p = tclparse.TCLParse('''proc test {x {y 10}} {
-  puts $y
-}''')
+  puts $x
+}
+
+test 99
+''')
 
 parsed = p.PROGRAM()
 
@@ -51,7 +54,7 @@ def parseArguments(args):
       parsed_args.append(s)
   return parsed_args
 
-def runFuncByName(name, state, *inargs):
+def runFuncByName(name, state, inargs):
   funcStuff = state.getProc(name)
   args = funcStuff['args']
   pargs = parseArguments(args)
@@ -88,12 +91,23 @@ def F_PROC(cmd, state):
   
   #runFuncByName('test', state, 14, 6)
 
+def toArgList(st):
+  build = ''
+  for c in st:
+    build += c['WORD'] + ' '
+  build = build.split(' ')
+  build = build[:-1]
+  return build
+  #print(build)
+
 def runCmd(cmd, state):
   subcmd(cmd, state)
   
   #print(cmd)
 
-  if cmd[0]['WORD'] == 'set':
+  if state.hasProc(cmd[0]['WORD']):
+    runFuncByName(cmd[0]['WORD'], state, toArgList(cmd[1:]))
+  elif cmd[0]['WORD'] == 'set':
     F_SET(cmd, state)
   elif cmd[0]['WORD'] == 'puts':
     F_PUTS(cmd, state)

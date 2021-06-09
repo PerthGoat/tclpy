@@ -11,3 +11,5 @@ class TCLState:
     self.procedures[name] = value
   def getProc(self, name):
     return self.procedures[name]
+  def hasProc(self, name):
+    return name in self.procedures

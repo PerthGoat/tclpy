@@ -2,7 +2,7 @@ import tclparse
 import tclstate
 
 p = tclparse.TCLParse('''proc test {x {y 10}} {
-  puts $x
+  puts "$x $y"
 }
 
 test 99

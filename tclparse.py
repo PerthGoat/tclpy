@@ -7,6 +7,8 @@ class TCLParse:
   def __init__(self, tcl_str):
     self.parse_tree = []
     self.cmd_list = []
+    self.parentextra = ''
+    self.extraind = 0
     self.tcl_str = tcl_str
   
   def EOF(self):
@@ -22,7 +24,13 @@ class TCLParse:
     self.tcl_str = self.tcl_str[1:]
 
   def parse_add(self, key, value):
-    self.parse_tree.append({key: value})
+    if self.parentextra == '':
+      self.parse_tree.append({key: value})
+    else:
+      if self.extraind == 0:
+        self.parse_tree.append({self.parentextra: []})
+        self.extraind = len(self.parse_tree) - 1
+      self.parse_tree[self.extraind][self.parentextra].append({key: value})
 
   # WORD = ALPHANUM, { ALPHANUM } ;
   def WORD(self):
@@ -91,7 +99,8 @@ class TCLParse:
   def QUOTEBLOCK(self):
     wb = ''
     assert self.peek() == '"'
-    self.parse_add('QUOTE_START', self.peek())
+    self.parentextra = 'QUOTE'
+    #self.parse_add('QUOTE_START', self.peek())
     self.pop()
     while self.peek() != '"':
       if self.peek() == '[':
@@ -99,7 +108,7 @@ class TCLParse:
         wb = ''
         self.CMDEXP()
         #wb += f'CMDEXP: {CMDEXP()}'
-      elif peek() == '$':
+      elif self.peek() == '$':
         self.parse_add('QUOTE_STR', wb)
         wb = ''
         self.VAREXP()
@@ -112,7 +121,9 @@ class TCLParse:
     
     if len(wb) > 0: self.parse_add('QUOTE_STR', wb)
     
-    self.parse_add('QUOTE_END', self.peek())
+    #self.parse_add('QUOTE_END', self.peek())
+    self.parentextra = ''
+    self.extraind = 0
     self.pop()
     
     return wb

@@ -86,7 +86,7 @@ def F_PROC(cmd, state):
   
   state.setProc(fname, {'args': fargs, 'body': fbody})
   
-  runFuncByName('test', state, 14, 6)
+  #runFuncByName('test', state, 14, 6)
 
 def runCmd(cmd, state):
   subcmd(cmd, state)

@@ -1,0 +1,4 @@
+ALPHANUM = ? any alphanumeric character A-Za-z0-9 and * ? ;
+
+ARGS = WORD, { WHITESPACE, ('{', WORD, WORD, '}') | WORD } ;
+WORD = ALPHANUM, { ALPHANUM } ;

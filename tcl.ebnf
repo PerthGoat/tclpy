@@ -1,0 +1,35 @@
+EOF = ? end of file ? ;
+ALPHANUM = ? any alphanumeric character A-Za-z0-9 and * ? ;
+WHITE_SPACE = ' ' ;
+END = ';' | '\n' ;
+anychar = ? any character except EOF ?
+
+(* a program is a sequence of commands followed by an end of file *)
+(* search for a comment OR a command, prioritizing comments *)
+PROGRAM = { '\n' | ( '#', { anychar - '\n' } ) | ( { WHITE_SPACE }, CMD, [ END ] ) }, EOF ;
+
+(* a command is a sequence of words, command expansions, brace blocks, quote blocks, and variable expansions *)
+(* removes any WHITE_SPACE at the beginning, then looks for words with a WHITE_SPACE or END after them. *)
+(* if there are no WORDS after the whitespace, then look for the END, optionally
+CMD = { ( WORD | CMDEXP | BRACEBLOCK | QUOTEBLOCK | VAREXP ), [ WHITE_SPACE ] } ;
+
+(* a word is alphanumeric characters *)
+(* it has at least 1 alphanumeric character, followed by possibly more *)
+WORD = ALPHANUM, { ALPHANUM } ;
+
+(* a command expansion *)
+(* is a bracket with commands in it followed by another bracket *)
+(* this works because [ token starts it, cmd will not match ] *)
+CMDEXP = '[', CMD | ']' ;
+
+(* a brace block *)
+(* this works because brackets do nothing between them *)
+BRACEBLOCK = '{', (BRACEBLOCK | (anychar - '}', '}')) ;
+
+(* a variable substitution/expansion *)
+(* it starts with a dollar sign always, and either has a braceblock as a word, or just a normal alphanumeric WORD *)
+VAREXP = '$', ([BRACEBLOCK] | WORD) ;
+
+(* the quoteblock ignores everything special except for command expansion, variable expansion *)
+QUOTEBLOCK = '"', { CMDEXP | VAREXP | anychar - ('[', '$') }, '"' ;
+

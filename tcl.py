@@ -1,15 +1,25 @@
 import tclparse
 import tclstate
 
-p = tclparse.TCLParse('''proc test {x} {
-  return [expr 10 $x +]
+p = tclparse.TCLParse('''
+
+proc doFib {st} {
+  set x 0
+
+  set y 1
+  set z 1
+  
+  for {set g 0} {$st $g <} {incr g} {
+    set x $y
+    set y $z
+    set z [expr $z $x +]
+    
+    puts $x
+  }
 }
 
-set x 0
+doFib 10
 
-for {set x 0} {10 $x <} {incr x} {
-  puts $x
-}
 ''')
 
 parsed = p.PROGRAM()
@@ -86,7 +96,8 @@ def runFuncByName(name, state, inargs):
   
   lastrun = ''
   for c in parsed2:
-    lastrun = runCmd(c, newstate)
+    if len(c) > 0:
+      lastrun = runCmd(c, newstate)
   
   return lastrun
   #print(parsed2)
@@ -139,20 +150,16 @@ def F_FOR(cmd, state):
   nxt = cmd[3]['WORD']
   body = cmd[4]['WORD']
   
+  set_val = tclparse.TCLParse(set_val).PROGRAM()[0]
+  runCmd(set_val, state)
+  
+  #print(set_val)
+  
   test_statement_setup = 'if {' + test + '} {' + body + f'\n{nxt} ' + '}'
   
   if_val = tclparse.TCLParse(test_statement_setup).PROGRAM()[0]
   while(F_IF(if_val, state)):
     pass
-    #print('hi')
-  
-  #print(test_statement_setup)
-  
-  
-  #print(state.getVar('x'))
-  #print(test)
-  
-  #runCmd(set_val, state)
 
 def F_IF(cmd, state):
   assert cmd[0]['WORD'] == 'if'
@@ -171,7 +178,8 @@ def F_IF(cmd, state):
   
   if expr_result:
     for cmd in body:
-      runCmd(cmd, state)
+      if len(cmd) > 0:
+        runCmd(cmd, state)
   
   return expr_result
   #if(expr_result):

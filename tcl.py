@@ -4,15 +4,12 @@ import tclstate
 p = tclparse.TCLParse('''proc test {x} {
   return [expr 10 $x +]
 }
-set x 5
-set x [expr 10 $x +]
-set x [expr 10 $x +]
-set x [expr 10 $x +]
-set x [expr 10 $x +]
-set x [expr 10 $x +]
-set x [expr 10 $x +]
-set x [expr 10 $x +]
-puts $x
+
+set x 10
+
+if {$x 10 >} {
+  puts "yaya"
+}
 ''')
 
 parsed = p.PROGRAM()
@@ -124,8 +121,49 @@ def F_EXPR(cmd, state):
       if c['WORD'] == '+':
         math_stack[-2] = math_stack[-1] + math_stack[-2]
         math_stack = math_stack[:-1]
+      elif c['WORD'] == '>':
+        math_stack[-2] = math_stack[-1] > math_stack[-2]
+        math_stack = math_stack[:-1]
+      else:
+        print(f'unknown op {c}')
   
   return {'WORD': str(math_stack[0])}
+
+def F_FOR(cmd, state):
+  assert cmd[0]['WORD'] == 'for'
+  set_val = cmd[1]['WORD']
+  test = cmd[2]['WORD']
+  nxt = cmd[3]['WORD']
+  body = cmd[4]['WORD']
+  
+  set_val = tclparse.TCLParse(set_val).PROGRAM()[0]
+  #print(test)
+  
+  runCmd(set_val, state)
+
+def F_IF(cmd, state):
+  assert cmd[0]['WORD'] == 'if'
+  test_val = cmd[1]['WORD']
+  body = cmd[2]['WORD']
+  
+  full_cmd = 'expr ' + test_val
+  
+  f_cmd = tclparse.TCLParse(full_cmd).PROGRAM()[0]
+  
+  subcmd(f_cmd, state)
+  
+  expr_result = F_EXPR(f_cmd, state)['WORD'] == 'True'
+  
+  body = tclparse.TCLParse(body).PROGRAM()
+  
+  if expr_result:
+    for cmd in body:
+      runCmd(cmd, state)
+  
+  #if(expr_result):
+    
+  
+  raise SystemExit('a')
 
 def toArgList(st):
   build = ''
@@ -140,7 +178,6 @@ def runCmd(cmd, state):
   #print(cmd)
   subcmd(cmd, state)
   #print(f'result: {cmd}')
-
   if state.hasProc(cmd[0]['WORD']):
     return runFuncByName(cmd[0]['WORD'], state, toArgList(cmd[1:]))
   elif cmd[0]['WORD'] == 'set':
@@ -153,6 +190,11 @@ def runCmd(cmd, state):
     return F_EXPR(cmd, state)
   elif cmd[0]['WORD'] == 'return':
     return cmd[1]
+  elif cmd[0]['WORD'] == 'for':
+    F_FOR(cmd, state)
+    raise SystemExit('for')
+  elif cmd[0]['WORD'] == 'if':
+    F_IF(cmd, state)
   else:
     print(f"unknown command {cmd}")
   #print(cmd)

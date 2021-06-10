@@ -5,10 +5,10 @@ p = tclparse.TCLParse('''proc test {x} {
   return [expr 10 $x +]
 }
 
-set x 10
+set x 0
 
-if {$x 10 >} {
-  puts "yaya"
+for {set x 0} {10 $x <} {incr x} {
+  puts $x
 }
 ''')
 
@@ -115,7 +115,7 @@ def F_EXPR(cmd, state):
   math_stack = []
   
   for c in cmd[1:]:
-    if isFloat(c['WORD']):
+    if c['WORD'].isnumeric() or isFloat(c['WORD']):
       math_stack.append(float(c['WORD']))
     else:
       if c['WORD'] == '+':
@@ -123,6 +123,9 @@ def F_EXPR(cmd, state):
         math_stack = math_stack[:-1]
       elif c['WORD'] == '>':
         math_stack[-2] = math_stack[-1] > math_stack[-2]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '<':
+        math_stack[-2] = math_stack[-1] < math_stack[-2]
         math_stack = math_stack[:-1]
       else:
         print(f'unknown op {c}')
@@ -136,10 +139,20 @@ def F_FOR(cmd, state):
   nxt = cmd[3]['WORD']
   body = cmd[4]['WORD']
   
-  set_val = tclparse.TCLParse(set_val).PROGRAM()[0]
+  test_statement_setup = 'if {' + test + '} {' + body + f'\n{nxt} ' + '}'
+  
+  if_val = tclparse.TCLParse(test_statement_setup).PROGRAM()[0]
+  while(F_IF(if_val, state)):
+    pass
+    #print('hi')
+  
+  #print(test_statement_setup)
+  
+  
+  #print(state.getVar('x'))
   #print(test)
   
-  runCmd(set_val, state)
+  #runCmd(set_val, state)
 
 def F_IF(cmd, state):
   assert cmd[0]['WORD'] == 'if'
@@ -160,11 +173,15 @@ def F_IF(cmd, state):
     for cmd in body:
       runCmd(cmd, state)
   
+  return expr_result
   #if(expr_result):
     
   
-  raise SystemExit('a')
+  #raise SystemExit('a')
 
+def F_INCR(cmd, state):
+  assert cmd[0]['WORD'] == 'incr'
+  state.setVar(cmd[1]['WORD'], str(int(state.getVar(cmd[1]['WORD'])) + 1))
 def toArgList(st):
   build = ''
   for c in st:
@@ -192,9 +209,11 @@ def runCmd(cmd, state):
     return cmd[1]
   elif cmd[0]['WORD'] == 'for':
     F_FOR(cmd, state)
-    raise SystemExit('for')
+    #raise SystemExit('for')
   elif cmd[0]['WORD'] == 'if':
     F_IF(cmd, state)
+  elif cmd[0]['WORD'] == 'incr':
+    F_INCR(cmd, state)
   else:
     print(f"unknown command {cmd}")
   #print(cmd)

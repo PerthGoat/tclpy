@@ -55,7 +55,7 @@ class TCLParse:
     self.pop()
 
   def ALPHANUM(self, n):
-    return n.isalnum() | (n == '*')
+    return n.isalnum() | (n in '*/+-')
 
   # BRACEBLOCK = '{', (BRACEBLOCK | (anychar - '}', '}')) ;
   def BRACEBLOCK(self):
@@ -88,11 +88,14 @@ class TCLParse:
   # CMDEXP = '[', CMD | ']' ;
   def CMDEXP(self):
     assert self.peek() == '['
-    self.parse_add('COMEXP_START', self.peek())
+    #self.parse_add('COMEXP_START', self.peek())
+    self.parentextra = 'COMEXP'
     self.pop()
     self.CMD()
     assert self.peek() == ']'
-    self.parse_add('COMEXP_END', self.peek())
+    #self.parse_add('COMEXP_END', self.peek())
+    self.parentextra = ''
+    self.extraind = 0
     self.pop()
 
   # QUOTEBLOCK = '"', { CMDEXP | VAREXP | anychar - ('[', '$') }, " ;

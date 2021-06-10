@@ -1,11 +1,18 @@
 import tclparse
 import tclstate
 
-p = tclparse.TCLParse('''proc test {x {y 10}} {
-  puts "$x $y"
+p = tclparse.TCLParse('''proc test {x} {
+  return [expr 10 $x +]
 }
-
-test 99
+set x 5
+set x [expr 10 $x +]
+set x [expr 10 $x +]
+set x [expr 10 $x +]
+set x [expr 10 $x +]
+set x [expr 10 $x +]
+set x [expr 10 $x +]
+set x [expr 10 $x +]
+puts $x
 ''')
 
 parsed = p.PROGRAM()
@@ -34,13 +41,18 @@ def subcmd(cmd, state):
         else:
           print('passed unknown quote val')
       cmd[i] = {'WORD': final_val}
-
+    elif 'COMEXP' in c:
+      funcbody = c['COMEXP']
+      cmd[i] = runCmd(funcbody, state)
+  #print(cmd)
 def F_PUTS(cmd, state):
   assert cmd[0]['WORD'] == 'puts'
   print(cmd[1]['WORD'])
 
 # ARGS = WORD, { WHITESPACE, ('{', WORD, WORD, '}') | WORD } ;
 def parseArguments(args):
+  if args == '':
+    return []
   split_args = args.split(' ')
   parsed_args = []
   for i, s in enumerate(split_args):
@@ -75,9 +87,11 @@ def runFuncByName(name, state, inargs):
     else:
       newstate.setVar(z, inargs[i])
   
+  lastrun = ''
   for c in parsed2:
-    runCmd(c, newstate)
+    lastrun = runCmd(c, newstate)
   
+  return lastrun
   #print(parsed2)
 
 def F_PROC(cmd, state):
@@ -91,6 +105,28 @@ def F_PROC(cmd, state):
   
   #runFuncByName('test', state, 14, 6)
 
+def isFloat(str):
+  try:
+    float(str)
+    return True
+  except ValueError:
+    return False
+
+def F_EXPR(cmd, state):
+  assert cmd[0]['WORD'] == 'expr'
+  
+  math_stack = []
+  
+  for c in cmd[1:]:
+    if isFloat(c['WORD']):
+      math_stack.append(float(c['WORD']))
+    else:
+      if c['WORD'] == '+':
+        math_stack[-2] = math_stack[-1] + math_stack[-2]
+        math_stack = math_stack[:-1]
+  
+  return {'WORD': str(math_stack[0])}
+
 def toArgList(st):
   build = ''
   for c in st:
@@ -101,21 +137,28 @@ def toArgList(st):
   #print(build)
 
 def runCmd(cmd, state):
-  subcmd(cmd, state)
-  
   #print(cmd)
+  subcmd(cmd, state)
+  #print(f'result: {cmd}')
 
   if state.hasProc(cmd[0]['WORD']):
-    runFuncByName(cmd[0]['WORD'], state, toArgList(cmd[1:]))
+    return runFuncByName(cmd[0]['WORD'], state, toArgList(cmd[1:]))
   elif cmd[0]['WORD'] == 'set':
     F_SET(cmd, state)
   elif cmd[0]['WORD'] == 'puts':
     F_PUTS(cmd, state)
   elif cmd[0]['WORD'] == 'proc':
     F_PROC(cmd, state)
+  elif cmd[0]['WORD'] == 'expr':
+    return F_EXPR(cmd, state)
+  elif cmd[0]['WORD'] == 'return':
+    return cmd[1]
   else:
     print(f"unknown command {cmd}")
   #print(cmd)
+
+
+#print(parsed)
 
 for cmd in parsed:
   proc_name = cmd[0]

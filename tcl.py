@@ -3,11 +3,23 @@ import tclstate
 
 p = tclparse.TCLParse('''
 
-set i 10
+proc buildarr {z} {
+  for {set i 0} {$i $z >} {incr i} {
+    set x($i) [expr $i 5 +]
+  }
+  
+  return $x
+}
 
-set x($i) 10
+set y [buildarr 10]
 
-puts $x($i)
+puts $y(0)
+
+#set i 10
+
+#set x($i) 10
+
+#puts $x($i)
 
 ''')
 

@@ -78,7 +78,7 @@ class TCLParse:
     self.pop()
 
   def ALPHANUM(self, n):
-    return n.isalnum() | (n in '*/+-<>=')
+    return n.isalnum() | (n in '*/+-<>=.')
 
   # BRACEBLOCK = '{', ( BRACEBLOCK | ( { anychar - '}' } , '}' ) ) ;
   def BRACEBLOCK(self):

@@ -130,6 +130,9 @@ def F_EXPR(cmd, state):
       elif c['WORD'] == '*':
         math_stack[-2] = math_stack[-2] * math_stack[-1]
         math_stack = math_stack[:-1]
+      elif c['WORD'] == '-':
+        math_stack[-2] = math_stack[-2] - math_stack[-1]
+        math_stack = math_stack[:-1]
       else:
         print(f'unknown op {c}')
   
@@ -159,6 +162,10 @@ def F_IF(cmd, state):
   assert cmd[0]['WORD'] == 'if'
   test_val = cmd[1]['WORD']
   body = cmd[2]['WORD']
+  if len(cmd) > 3:
+    elsebody = cmd[3]['WORD']
+  else:
+    elsebody = ''
   
   full_cmd = 'expr ' + test_val
   
@@ -172,6 +179,8 @@ def F_IF(cmd, state):
   
   if expr_result:
     return runCmdSet(body, state)
+  elif elsebody != '':
+    return runCmdSet(tclparse.TCLParse(elsebody).PROGRAM(), state)
   
   return None
 

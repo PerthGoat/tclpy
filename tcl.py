@@ -1,164 +1,242 @@
-import lexer
-import tclmath
-from variables import VAR_STACK, PROC_STACK
+import tclparse
+import tclstate
+from pathlib import Path
 
-# command functions
+p = tclparse.TCLParse(Path('tcl_programs/calcpi.t').read_text())
 
-def t_set(cmd, t_vars, scope):
-  # make sure passed a set
-  assert cmd[0] == 'set'
-  
-  # make sure arguments less than or equal to 2, but greater than 0
-  arguments = len(cmd) - 1
-  
-  assert arguments <= 2 and arguments != 0
-  
-  name = cmd[1]
-  if len(cmd) == 3:
-    val = cmd[2]
-    t_vars.set_variable(name, val, scope)
-  
-  return t_vars.get_variable(name, scope)
+parsed = p.PROGRAM()
+#print(parsed)
 
-def t_puts(cmd):
-  assert cmd[0] == 'puts'
-  assert len(cmd) > 1
-  print(' '.join(cmd[1:]))
+#exit(0)
 
-def t_userproc(cmd, t_vars, t_proc, scope):
-  assert cmd[0] == 'proc'
-  assert len(cmd) == 4
-  
-  name = cmd[1]
-  args = cmd[2][1:-1].strip()
-  body = cmd[3][1:-1].replace('\t', '').strip()
-  t_proc.set_process(name, [args, body], scope)
-  #t_proc._dpa()
+mainstate = tclstate.TCLState()
 
-def t_runprocess(cmd, t_vars, t_proc, scope):
-  given_args = len(cmd) - 1
-  user_cmd = t_proc.get_process(cmd[0], scope)
-  var_set = user_cmd[0]
-  parsed_args = lexer.lextcl(var_set)[0]
+def F_SET(cmd, state):
+  assert cmd[0]['WORD'] == 'set'
+  assert len(cmd) >= 2
+  if len(cmd) == 2:
+    return state.getVar(cmd[1]['WORD'])
   
-  needed_arg_len = len([p for p in parsed_args if 'WORD' in p])
-  
-  assert given_args == needed_arg_len or given_args == len(parsed_args)
-  
-  t_vars.new_instance()
-  #t_proc.new_instance()
-  
-  scope += 1
-  
-  it = 0
-  
-  for v in parsed_args:
-    if 'WORD' in v:
-      name = v['WORD']
-      val = cmd[1 + it]
-      
-      t_vars.set_variable(name, val, scope)
-      
-      it += 1
-    if 'SAFE_BRACES' in v:
-      dec = v['SAFE_BRACES'][1:-1]
-      spl = dec.split(' ')
-      name = spl[0]
-      val = spl[1]
-      if it < given_args:
-        val = cmd[1 + it]
-        it += 1
-      t_vars.set_variable(name, val, scope)
-  return runTCLcmds(user_cmd[1], t_vars, t_proc, scope)
-  
+  return state.setVar(cmd[1]['WORD'], cmd[2]['WORD'])
 
-# current execution nesting level
-e_level = 0
+def subcmd(cmd, state):
+  for i, c in enumerate(cmd):
+    if 'VAREXP' in c:
+      cmd[i] = {'WORD': state.getVar(c['VAREXP'])}
+    elif 'QUOTE' in c:
+      final_val = ''
+      for q in c['QUOTE']:
+        if 'QUOTE_STR' in q:
+          final_val += q['QUOTE_STR']
+        elif 'VAREXP' in q:
+          final_val += state.getVar(q['VAREXP'])
+        else:
+          print('passed unknown quote val')
+      cmd[i] = {'WORD': final_val}
+    elif 'COMEXP' in c:
+      funcbody = c['COMEXP']
+      cmd[i] = runCmdSet([funcbody], state)
+  #print(cmd)
+def F_PUTS(cmd, state):
+  assert cmd[0]['WORD'] == 'puts'
+  print(cmd[1]['WORD'])
 
-# process a chunk
-def process_word(word, t_vars, t_proc, exec_level):
-  # the most traditional of words
-  # return with no special stuff
-  if 'WORD' in word:
-    return word['WORD']
-  elif 'SAFE_BRACES' in word: # place where no subs occur
-    return word['SAFE_BRACES']
-  elif 'VAR_SUB' in word: # the variable substitution
-    # try substitution here
-    # remove $
-    word['VAR_SUB'] = word['VAR_SUB'][1:]
-    if word['VAR_SUB'] == '':
-      return ''
-    # split up chained var subs
-    for c in word['VAR_SUB']:
-      if not c.isalnum():
-        ind = word['VAR_SUB'].index(c)
-        lh = {'VAR_SUB':'$' + word['VAR_SUB'][0:ind]}
-        rh = {'VAR_SUB':word['VAR_SUB'][ind:]}
-        rh = process_word(rh, t_vars, t_proc, exec_level)
-        
-        if c == '$':
-          c = ''
-        
-        return process_word(lh, t_vars, t_proc, exec_level) + c + rh
-        
-    return t_vars.get_variable(word['VAR_SUB'], exec_level)
-  elif 'QUOTED_WORD' in word: # in this case I need to do some tricky lexing
-    orig_word = word['QUOTED_WORD'][1:-1]
-    degraded = lexer.lextcl(word['QUOTED_WORD'][1:-1])[0] # downgrade out of the quotes using the lexer
-    for d in degraded: # and so any subs needed
-      if 'VAR_SUB' in d:
-        orig_word = orig_word.replace(d['VAR_SUB'], process_word(d, t_vars, t_proc, exec_level))
-    return orig_word
-  elif 'COMMAND_SUB' in word:
-    cmd_to_run = word['COMMAND_SUB'][1:-1]
-    #print(lexer.lextcl(cmd_to_run))
-    t_vars.new_instance()
-    #t_proc.new_instance()
-    return runTCLcmds(cmd_to_run, t_vars, t_proc, exec_level)
-  else:
-    raise SystemExit(f"can't handle type {word}")
+# ARGS = WORD, { WHITESPACE, ('{', WORD, WORD, '}') | WORD } ;
+def parseArguments(args):
+  if args == '':
+    return []
+  split_args = args.split(' ')
+  parsed_args = []
+  for i, s in enumerate(split_args):
+    if '{' in s:
+      left = s;
+      right = split_args[i + 1]
+      left = left[1:]
+      right = right[:-1]
+      parsed_args.append({'VAR': left, 'DEFAULT': right})
+    elif '}' not in s:
+      parsed_args.append(s)
+  return parsed_args
 
-def runTCLcmds(t_code, t_vars, t_proc, exec_level):
-  parsed_tcl = lexer.lextcl(t_code)
-  # return the last result
-  last_result = None
+def runFuncByName(name, state, inargs):
+  funcStuff = state.getProc(name)
+  args = funcStuff['args']
+  pargs = parseArguments(args)
+  body = funcStuff['body']
+  newstate = tclstate.TCLState(state)
+  p2 = tclparse.TCLParse(body)
+  parsed2 = p2.PROGRAM()
   
-  for cmd in parsed_tcl:
-    cmd = [process_word(c, t_vars, t_proc, exec_level) for c in cmd]
-    # command parse tree now begins here
-    if cmd[0] == 'set': # set command
-      last_result = t_set(cmd, t_vars, exec_level)
-    elif cmd[0] == 'puts': # put command
-      last_result = t_puts(cmd)
-    elif cmd[0] == 'proc': # proc command
-      last_result = t_userproc(cmd, t_vars, t_proc, exec_level)
-    elif cmd[0] == 'return': # immediately return the value
-      #print(cmd)
-      return cmd[1]
-    elif cmd[0] == 'eval': # evaluate an expression, typically a math expression
-      last_result = str(tclmath.eval_math_expr(cmd[1]))
-    elif t_proc.has_process(cmd[0], 0): # try user defined procedures before failing out, im doing global processes for now because it makes more sense
-      last_result = t_runprocess(cmd, t_vars, t_proc, exec_level)
+  min_len = len([z for z in pargs if 'DEFAULT' not in z])
+  assert len(inargs) >= min_len
+  assert len(inargs) <= len(pargs)
+  
+  for i, z in enumerate(pargs):
+    if type(z) is dict and i >= len(inargs):
+      newstate.setVar(z['VAR'], z['DEFAULT'])
+    elif type(z) is dict:
+      newstate.setVar(z['VAR'], inargs[i]['WORD'])
     else:
-      raise SystemExit(f"unknown command {cmd}")
-    #print(cmd)
+      newstate.setVar(z, inargs[i]['WORD'])
   
-  t_vars.drop_instance()
-  #t_proc.drop_instance()
-  return last_result
+  lastrun = runCmdSet(parsed2, newstate)
   
-# read in tcl code from a file
-tcl_code = ''
-with open('tclcode.txt', 'r') as file:
-  tcl_code = file.read()
+  return lastrun
+  #print(parsed2)
 
-# initialize a new variable stack
-vs = VAR_STACK()
-vs.new_instance()
-# initialize a new user-defined process stack
-ps = PROC_STACK()
-ps.new_instance()
+def F_PROC(cmd, state):
+  assert cmd[0]['WORD'] == 'proc'
+  
+  fname = cmd[1]['WORD']
+  fargs = cmd[2]['WORD']
+  fbody = cmd[3]['WORD']
+  
+  state.setProc(fname, {'args': fargs, 'body': fbody})
+  
+  #runFuncByName('test', state, 14, 6)
 
-# run the tclcode
-runTCLcmds(tcl_code, vs, ps, e_level)
+def isFloat(str):
+  try:
+    float(str)
+    return True
+  except ValueError:
+    return False
+
+def F_EXPR(cmd, state):
+  #print(cmd)
+  assert cmd[0]['WORD'] == 'expr'
+  
+  math_stack = []
+  
+  for c in cmd[1:]:
+    if c['WORD'].isnumeric() or isFloat(c['WORD']):
+      math_stack.append(float(c['WORD']))
+    else: # -2 is the first number # -1 is the second number
+      if c['WORD'] == '+':
+        math_stack[-2] = math_stack[-1] + math_stack[-2]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '>':
+        math_stack[-2] = math_stack[-2] > math_stack[-1]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '<':
+        math_stack[-2] = math_stack[-2] < math_stack[-1]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '=':
+        math_stack[-2] = math_stack[-1] == math_stack[-2]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '/':
+        math_stack[-2] = math_stack[-2] / math_stack[-1]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '*':
+        math_stack[-2] = math_stack[-2] * math_stack[-1]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '-':
+        math_stack[-2] = math_stack[-2] - math_stack[-1]
+        math_stack = math_stack[:-1]
+      else:
+        print(f'unknown op {c}')
+  
+  return {'WORD': str(math_stack[0])}
+
+def F_FOR(cmd, state):
+  assert cmd[0]['WORD'] == 'for'
+  set_val = cmd[1]['WORD']
+  test = cmd[2]['WORD']
+  nxt = cmd[3]['WORD']
+  body = cmd[4]['WORD']
+  
+  set_val = tclparse.TCLParse(set_val).PROGRAM()
+  runCmdSet(set_val, state)
+  
+  #test_statement_setup = 'if {' + test + '} {' + body + f'\n{nxt} ' + '}'
+  #print(test_statement_setup)
+  while(runCmdSet(tclparse.TCLParse('expr ' + test).PROGRAM(), state)['WORD'] == 'True'):
+    runCmdSet(tclparse.TCLParse(body).PROGRAM(), state)
+    runCmdSet(tclparse.TCLParse(nxt).PROGRAM(), state)
+  
+  #if_val = tclparse.TCLParse(test_statement_setup).PROGRAM()[0]
+  #raise SystemExit('pas')
+  
+
+def F_IF(cmd, state):
+  assert cmd[0]['WORD'] == 'if'
+  test_val = cmd[1]['WORD']
+  body = cmd[2]['WORD']
+  if len(cmd) > 3:
+    elsebody = cmd[3]['WORD']
+  else:
+    elsebody = ''
+  
+  full_cmd = 'expr ' + test_val
+  
+  f_cmd = tclparse.TCLParse(full_cmd).PROGRAM()[0]
+  
+  subcmd(f_cmd, state)
+  
+  expr_result = F_EXPR(f_cmd, state)['WORD'] == 'True'
+  
+  body = tclparse.TCLParse(body).PROGRAM()
+  
+  if expr_result:
+    return runCmdSet(body, state)
+  elif elsebody != '':
+    return runCmdSet(tclparse.TCLParse(elsebody).PROGRAM(), state)
+  
+  return None
+
+def F_INCR(cmd, state):
+  assert cmd[0]['WORD'] == 'incr'
+  state.setVar(cmd[1]['WORD'], str(int(state.getVar(cmd[1]['WORD'])) + 1))
+def toArgList(st):
+  print(st)
+  build = ''
+  for c in st:
+    build += c['WORD'] + ' '
+  build = build.split(' ')
+  build = build[:-1]
+  return build
+  #print(build)
+
+def runCmd(cmd, state):
+  #print(cmd)
+  subcmd(cmd, state)
+  #print(f'result: {cmd}')
+  if state.hasProc(cmd[0]['WORD']):
+    return runFuncByName(cmd[0]['WORD'], state, cmd[1:])
+  elif cmd[0]['WORD'] == 'set':
+    return F_SET(cmd, state)
+  elif cmd[0]['WORD'] == 'puts':
+    F_PUTS(cmd, state)
+  elif cmd[0]['WORD'] == 'proc':
+    F_PROC(cmd, state)
+  elif cmd[0]['WORD'] == 'expr':
+    return F_EXPR(cmd, state)
+  elif cmd[0]['WORD'] == 'return':
+    return cmd[1]
+  elif cmd[0]['WORD'] == 'for':
+    F_FOR(cmd, state)
+    #raise SystemExit('for')
+  elif cmd[0]['WORD'] == 'if':
+    return F_IF(cmd, state)
+  #elif cmd[0]['WORD'] == 'incr':
+    #F_INCR(cmd, state)
+  else:
+    print(f"unknown command {cmd}")
+  #print(cmd)
+
+
+def runCmdSet(cmdset, state):
+  for cmd in cmdset:
+    if len(cmd) == 0: # this shouldn't be needed but there's a bug in the lexer
+      continue
+    proc_name = cmd[0]
+    if 'WORD' in proc_name:
+      res = runCmd(cmd, state)
+      if res != None: # this is how the function split happens now for 'return'
+        return res
+    elif 'VAREXP' in proc_name:
+      pass
+    else:
+      print('command must start with a word or variable expansion')
+
+runCmdSet(parsed, mainstate)

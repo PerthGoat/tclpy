@@ -195,14 +195,16 @@ class TCLParse:
         self.pop() # remove newline after (END)
         continue
       
-      while self.peek() == ' ':
+      while not self.EOF() and self.peek() == ' ':
         self.WHITE_SPACE()
       
       #self.CMD()
       self.CMD()
+      
       self.cmd_list.append(self.parse_tree)
       self.parse_tree = []
       if not self.EOF() and self.peek() in ';\n':
         self.END()
+    
     assert self.EOF()
     return self.cmd_list

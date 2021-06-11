@@ -4,7 +4,7 @@ import tclstate
 p = tclparse.TCLParse('''
 
 proc buildarr {z} {
-  for {set i 0} {$i $z >} {incr i} {
+  for {set i 0} {$i $z <} {incr i} {
     set x($i) [expr $i 5 +]
   }
   
@@ -12,12 +12,16 @@ proc buildarr {z} {
 }
 
 proc printArr {a} {
-  puts $a
+  for {set i 0} {$i 10 <} {incr i} {
+    if {$a($i) 5 =} {
+      puts "A is 5"
+    }
+  }
 }
 
 set y [buildarr 10]
 
-puts $y(0)
+#puts $y(0)
 
 printArr $y
 
@@ -125,6 +129,7 @@ def isFloat(str):
     return False
 
 def F_EXPR(cmd, state):
+  #print(cmd)
   assert cmd[0]['WORD'] == 'expr'
   
   math_stack = []
@@ -136,11 +141,14 @@ def F_EXPR(cmd, state):
       if c['WORD'] == '+':
         math_stack[-2] = math_stack[-1] + math_stack[-2]
         math_stack = math_stack[:-1]
-      elif c['WORD'] == '>':
+      elif c['WORD'] == '<':
         math_stack[-2] = math_stack[-1] > math_stack[-2]
         math_stack = math_stack[:-1]
-      elif c['WORD'] == '<':
+      elif c['WORD'] == '>':
         math_stack[-2] = math_stack[-1] < math_stack[-2]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '=':
+        math_stack[-2] = math_stack[-1] == math_stack[-2]
         math_stack = math_stack[:-1]
       else:
         print(f'unknown op {c}')

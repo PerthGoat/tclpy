@@ -1,31 +1,8 @@
 import tclparse
 import tclstate
+from pathlib import Path
 
-p = tclparse.TCLParse('''
-
-proc buildarr {z} {
-  for {set i 0} {$i $z <} {incr i} {
-    set x($i) [expr $i 5 +]
-  }
-  
-  return $x
-}
-
-proc printArr {a} {
-  for {set i 0} {$i 10 <} {incr i} {
-    if {$a($i) 5 =} {
-      puts "A is 5"
-    }
-  }
-}
-
-set y [buildarr 10]
-
-#puts $y(0)
-
-printArr $y
-
-''')
+p = tclparse.TCLParse(Path('tcl_programs/calcpi.t').read_text())
 
 parsed = p.PROGRAM()
 #print(parsed)
@@ -102,10 +79,7 @@ def runFuncByName(name, state, inargs):
     else:
       newstate.setVar(z, inargs[i]['WORD'])
   
-  lastrun = ''
-  for c in parsed2:
-    if len(c) > 0:
-      lastrun = runCmd(c, newstate)
+  lastrun = runCmdSet(parsed2, newstate)
   
   return lastrun
   #print(parsed2)
@@ -137,18 +111,24 @@ def F_EXPR(cmd, state):
   for c in cmd[1:]:
     if c['WORD'].isnumeric() or isFloat(c['WORD']):
       math_stack.append(float(c['WORD']))
-    else:
+    else: # -2 is the first number # -1 is the second number
       if c['WORD'] == '+':
         math_stack[-2] = math_stack[-1] + math_stack[-2]
         math_stack = math_stack[:-1]
-      elif c['WORD'] == '<':
-        math_stack[-2] = math_stack[-1] > math_stack[-2]
-        math_stack = math_stack[:-1]
       elif c['WORD'] == '>':
-        math_stack[-2] = math_stack[-1] < math_stack[-2]
+        math_stack[-2] = math_stack[-2] > math_stack[-1]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '<':
+        math_stack[-2] = math_stack[-2] < math_stack[-1]
         math_stack = math_stack[:-1]
       elif c['WORD'] == '=':
         math_stack[-2] = math_stack[-1] == math_stack[-2]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '/':
+        math_stack[-2] = math_stack[-2] / math_stack[-1]
+        math_stack = math_stack[:-1]
+      elif c['WORD'] == '*':
+        math_stack[-2] = math_stack[-2] * math_stack[-1]
         math_stack = math_stack[:-1]
       else:
         print(f'unknown op {c}')
@@ -189,9 +169,7 @@ def F_IF(cmd, state):
   body = tclparse.TCLParse(body).PROGRAM()
   
   if expr_result:
-    for cmd in body:
-      if len(cmd) > 0:
-        runCmd(cmd, state)
+    return runCmdSet(body, state)
   
   return expr_result
   #if(expr_result):
@@ -232,7 +210,7 @@ def runCmd(cmd, state):
     F_FOR(cmd, state)
     #raise SystemExit('for')
   elif cmd[0]['WORD'] == 'if':
-    F_IF(cmd, state)
+    return F_IF(cmd, state)
   elif cmd[0]['WORD'] == 'incr':
     F_INCR(cmd, state)
   else:
@@ -240,16 +218,18 @@ def runCmd(cmd, state):
   #print(cmd)
 
 
-#print(parsed)
+def runCmdSet(cmdset, state):
+  for cmd in cmdset:
+    if len(cmd) == 0: # this shouldn't be needed but there's a bug in the lexer
+      continue
+    proc_name = cmd[0]
+    if 'WORD' in proc_name:
+      res = runCmd(cmd, state)
+      if res != None: # this is how the function split happens now for 'return'
+        return res
+    elif 'VAREXP' in proc_name:
+      pass
+    else:
+      print('command must start with a word or variable expansion')
 
-for cmd in parsed:
-  proc_name = cmd[0]
-  if 'WORD' in proc_name:
-    runCmd(cmd, mainstate)
-  elif 'VAREXP' in proc_name:
-    pass
-  else:
-    print('command must start with a word or variable expansion')
-
-#print(mainstate.getVar('y'))
-#print(parsed)
+runCmdSet(parsed, mainstate)

@@ -11,6 +11,11 @@ class TCLParse:
     self.extraind = 0
     self.tcl_str = tcl_str
   
+  # end immediately and return a value
+  def E_RETURN(self, val):
+    self.tcl_str = ''
+    return val
+  
   def EOF(self):
     return len(self.tcl_str) == 0
 
@@ -75,7 +80,7 @@ class TCLParse:
   def ALPHANUM(self, n):
     return n.isalnum() | (n in '*/+-<>=')
 
-  # BRACEBLOCK = '{', (BRACEBLOCK | (anychar - '}', '}')) ;
+  # BRACEBLOCK = '{', ( BRACEBLOCK | ( { anychar - '}' } , '}' ) ) ;
   def BRACEBLOCK(self):
     wb = ''
     assert self.peek() == '{'
@@ -189,14 +194,14 @@ class TCLParse:
         self.pop()
         continue
       
-      if self.peek() == '#':
+      while not self.EOF() and self.peek() == ' ':
+        self.WHITE_SPACE()
+      
+      if not self.EOF() and self.peek() == '#':
         while(not self.EOF() and self.peek() != '\n'):
           self.pop()
         self.pop() # remove newline after (END)
         continue
-      
-      while not self.EOF() and self.peek() == ' ':
-        self.WHITE_SPACE()
       
       #self.CMD()
       self.CMD()

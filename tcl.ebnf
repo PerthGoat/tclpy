@@ -27,7 +27,7 @@ CMDEXP = '[', CMD | ']' ;
 
 (* a brace block *)
 (* this works because brackets do nothing between them *)
-BRACEBLOCK = '{', (BRACEBLOCK | (anychar - '}', '}')) ;
+BRACEBLOCK = '{', ( BRACEBLOCK | ( { anychar - '}' } , '}' ) ) ;
 
 (* a variable substitution/expansion *)
 (* it starts with a dollar sign always, and either has a braceblock as a word, or just a normal alphanumeric WORD *)

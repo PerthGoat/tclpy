@@ -171,11 +171,7 @@ def F_IF(cmd, state):
   if expr_result:
     return runCmdSet(body, state)
   
-  return expr_result
-  #if(expr_result):
-    
-  
-  #raise SystemExit('a')
+  return None
 
 def F_INCR(cmd, state):
   assert cmd[0]['WORD'] == 'incr'

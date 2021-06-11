@@ -31,13 +31,31 @@ class TCLParse:
         self.parse_tree.append({self.parentextra: []})
         self.extraind = len(self.parse_tree) - 1
       self.parse_tree[self.extraind][self.parentextra].append({key: value})
-
+  
+  def ARRAY(self):
+    assert self.peek() == '('
+    
+    self.pop()
+    if self.peek() == '$':
+      w = {'VAREXP': self.VAREXP()}
+    else:
+      w = {'WORD': self.WORD()}
+    self.pop()
+    
+    return w
+  
   # WORD = ALPHANUM, { ALPHANUM } ;
+  # alternative if a ( is found ARRAY = WORD, ['(', { anychar - ')' }, ')'] ;
+  # array is store as a list with name and index
   def WORD(self):
     wb = ''
     while not self.EOF() and self.ALPHANUM(self.peek()):
       wb += self.peek()
       self.pop()
+    if not self.EOF() and self.peek() == '(': # array
+      arr = self.ARRAY()
+      
+      return {'name': wb, 'index': arr}
     return wb
 
   # END just matches ; or \n or EOF
@@ -78,12 +96,17 @@ class TCLParse:
     assert self.peek() == '$'
     self.pop()
     
+    parsed = ''
+    
     if self.peek() == '{':
-      self.parse_add('VAREXP', self.BRACEBLOCK())
+      parsed = self.BRACEBLOCK()
     elif self.ALPHANUM(self.peek()):
-      self.parse_add('VAREXP', self.WORD())
+      parsed = self.WORD()
     else:
       print('invalid variable expression')
+    
+    #self.parse_add('VAREXP', parsed)
+    return parsed
 
   # CMDEXP = '[', CMD | ']' ;
   def CMDEXP(self):
@@ -114,7 +137,7 @@ class TCLParse:
       elif self.peek() == '$':
         self.parse_add('QUOTE_STR', wb)
         wb = ''
-        self.VAREXP()
+        self.parse_add('VAREXP', self.VAREXP())
         #wb += f'VAREXP: {VAREXP()}'
       else:
         wb += self.peek()
@@ -131,7 +154,7 @@ class TCLParse:
     
     return wb
 
-  # CMD = { ( WORD | CMDEXP | BRACEBLOCK | QUOTEBLOCK | VAREXP ), [ WHITE_SPACE ] } ;
+  # CMD = { ( WORD | ARRAY | CMDEXP | BRACEBLOCK | QUOTEBLOCK | VAREXP ), [ WHITE_SPACE ] } ;
   def CMD(self):
     while not self.EOF():
     
@@ -145,7 +168,7 @@ class TCLParse:
       elif c == '"': # QUOTEBLOCK
         self.QUOTEBLOCK()
       elif c == '$': # VAREXP
-        self.VAREXP()
+        self.parse_add('VAREXP', self.VAREXP())
       elif c == ']':
         break
       elif c == ' ':

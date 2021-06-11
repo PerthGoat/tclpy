@@ -3,26 +3,18 @@ import tclstate
 
 p = tclparse.TCLParse('''
 
-proc doFib {st} {
-  set x 0
+set i 10
 
-  set y 1
-  set z 1
-  
-  for {set g 0} {$st $g <} {incr g} {
-    set x $y
-    set y $z
-    set z [expr $z $x +]
-    
-    puts $x
-  }
-}
+set x($i) 10
 
-doFib 10
+puts $x($i)
 
 ''')
 
 parsed = p.PROGRAM()
+#print(parsed)
+
+#exit(0)
 
 mainstate = tclstate.TCLState()
 

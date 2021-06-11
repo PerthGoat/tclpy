@@ -10,8 +10,11 @@ PROGRAM = { '\n' | ( '#', { anychar - '\n' } ) | ( { WHITE_SPACE }, CMD, [ END ]
 
 (* a command is a sequence of words, command expansions, brace blocks, quote blocks, and variable expansions *)
 (* removes any WHITE_SPACE at the beginning, then looks for words with a WHITE_SPACE or END after them. *)
-(* if there are no WORDS after the whitespace, then look for the END, optionally
-CMD = { ( WORD | CMDEXP | BRACEBLOCK | QUOTEBLOCK | VAREXP ), [ WHITE_SPACE ] } ;
+(* if there are no WORDS after the whitespace, then look for the END, optionally *)
+CMD = { ( WORD | ARRAY | CMDEXP | BRACEBLOCK | QUOTEBLOCK | VAREXP ), [ WHITE_SPACE ] } ;
+
+(* if it is parentheses then it is an array variable, also read in the parens *)
+ARRAY = WORD, ['(', { anychar - ')' }, ')'] ;
 
 (* a word is alphanumeric characters *)
 (* it has at least 1 alphanumeric character, followed by possibly more *)
@@ -28,7 +31,7 @@ BRACEBLOCK = '{', (BRACEBLOCK | (anychar - '}', '}')) ;
 
 (* a variable substitution/expansion *)
 (* it starts with a dollar sign always, and either has a braceblock as a word, or just a normal alphanumeric WORD *)
-VAREXP = '$', ([BRACEBLOCK] | WORD) ;
+VAREXP = '$', ([BRACEBLOCK] | WORD | ARRAY) ;
 
 (* the quoteblock ignores everything special except for command expansion, variable expansion *)
 QUOTEBLOCK = '"', { CMDEXP | VAREXP | anychar - ('[', '$') }, '"' ;

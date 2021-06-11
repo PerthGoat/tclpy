@@ -11,15 +11,15 @@ proc buildarr {z} {
   return $x
 }
 
+proc printArr {a} {
+  puts $a
+}
+
 set y [buildarr 10]
 
 puts $y(0)
 
-#set i 10
-
-#set x($i) 10
-
-#puts $x($i)
+printArr $y
 
 ''')
 
@@ -94,9 +94,9 @@ def runFuncByName(name, state, inargs):
     if type(z) is dict and i >= len(inargs):
       newstate.setVar(z['VAR'], z['DEFAULT'])
     elif type(z) is dict:
-      newstate.setVar(z['VAR'], inargs[i])
+      newstate.setVar(z['VAR'], inargs[i]['WORD'])
     else:
-      newstate.setVar(z, inargs[i])
+      newstate.setVar(z, inargs[i]['WORD'])
   
   lastrun = ''
   for c in parsed2:
@@ -195,6 +195,7 @@ def F_INCR(cmd, state):
   assert cmd[0]['WORD'] == 'incr'
   state.setVar(cmd[1]['WORD'], str(int(state.getVar(cmd[1]['WORD'])) + 1))
 def toArgList(st):
+  print(st)
   build = ''
   for c in st:
     build += c['WORD'] + ' '
@@ -208,7 +209,7 @@ def runCmd(cmd, state):
   subcmd(cmd, state)
   #print(f'result: {cmd}')
   if state.hasProc(cmd[0]['WORD']):
-    return runFuncByName(cmd[0]['WORD'], state, toArgList(cmd[1:]))
+    return runFuncByName(cmd[0]['WORD'], state, cmd[1:])
   elif cmd[0]['WORD'] == 'set':
     F_SET(cmd, state)
   elif cmd[0]['WORD'] == 'puts':

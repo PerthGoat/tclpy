@@ -38,15 +38,52 @@ proc sqrt {n} {
   return $est
 }
 
-proc calcPi {} {
-  set bottom 1
-  set sum 0
-  for {set i 0} {$i 3 <} {incr i} {
-    set ratio [expr 1 $bottom /]
-    set sum [expr $sum $ratio +]
+# arctangent of x using the taylor series
+proc arctan {x} {
+  
+  set xsum 0
+  set flip 0
+  
+  for {set i 0} {$i 10 <} {incr i} { 
+    set pw [expr $i 2 *]
+    set pw [expr $pw 1 +]
     
-    puts $sum
+    set xt [pow $x $pw]
+    
+    set xd [expr $xt $pw /]
+    
+    if {$flip 0 =} {
+      set xsum [expr $xsum $xd +]
+      set flip 1
+    } {
+      set xsum [expr $xsum $xd -]
+      set flip 0
+    }
+    
+    #puts $xd
   }
+  return $xsum
+}
+
+# get PI
+proc PI {} {
+  set fr1 [expr 1 5 /]
+  set fr1 [arctan $fr1]
+  set fr1 [expr $fr1 4 *]
+  set fr2 [expr 1 239 /]
+  set fr2 [arctan $fr2]
+  
+  set pi4 [expr $fr1 $fr2 -]
+  
+  set pi [expr $pi4 4 *]
+  
+  return $pi
+}
+
+proc tan {x} {
+  
 }
 
 #sqrt 5
+
+puts [PI]

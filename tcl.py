@@ -218,8 +218,8 @@ def runCmd(cmd, state):
     #raise SystemExit('for')
   elif cmd[0]['WORD'] == 'if':
     return F_IF(cmd, state)
-  elif cmd[0]['WORD'] == 'incr':
-    F_INCR(cmd, state)
+  #elif cmd[0]['WORD'] == 'incr':
+    #F_INCR(cmd, state)
   else:
     print(f"unknown command {cmd}")
   #print(cmd)

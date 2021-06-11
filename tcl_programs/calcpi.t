@@ -6,7 +6,7 @@ proc pow {x y} {
   }
   
   set res $x
-  for {set i 1} {$i $y <} {incr i} {
+  for {set i 1} {$i $y <} {set i [incr $i]} {
     
     set res [expr $res $x *]
   }
@@ -22,7 +22,7 @@ proc sqrt {n} {
   
   set cness 0
   
-  for {set i 0} {$i 10 <} {incr i} {
+  for {set i 0} {$i 10 <} {set i [incr $i]} {
     set cness [pow $est 2]
     # negative diff is too high
     # positive diff is too low
@@ -44,7 +44,7 @@ proc arctan {x} {
   set xsum 0
   set flip 0
   
-  for {set i 0} {$i 10 <} {incr i} { 
+  for {set i 0} {$i 10 <} {set i [incr $i]} { 
     set pw [expr $i 2 *]
     set pw [expr $pw 1 +]
     
@@ -65,6 +65,23 @@ proc arctan {x} {
   return $xsum
 }
 
+proc decr {x} {
+  return [expr $x 1 -]
+}
+
+proc incr {x} {
+  return [expr $x 1 +]
+}
+
+proc factorial {x} {
+  set fact 1
+  for {} {$x 1 >} {set x [decr $x]} {
+    set fact [expr $fact $x *]
+  }
+
+  return $fact
+}
+
 # get PI
 proc PI {} {
   set fr1 [expr 1 5 /]
@@ -80,10 +97,45 @@ proc PI {} {
   return $pi
 }
 
-proc tan {x} {
+proc sin {x} {
+  set xsum 0
+  set flip 0
   
+  for {set i 0} {$i 10 <} {set i [incr $i]} {
+    set pw [expr $i 2 *]
+    set pw [expr $pw 1 +]
+    set fact [factorial $pw]
+    
+    set xt [pow $x $pw]
+    
+    set xd [expr $xt $fact /]
+    
+    if {$flip 0 =} {
+      set xsum [expr $xsum $xd +]
+      set flip 1
+    } {
+      set xsum [expr $xsum $xd -]
+      set flip 0
+    }
+    
+    #puts $xd
+  }
+  
+  return $xsum
 }
 
-#sqrt 5
+proc cos {x} {
+  set halfpi [PI]
+  set halfpi [expr $halfpi 2 /]
+  set sum [expr $halfpi $x +]
+  return [sin $sum]
+}
 
-puts [PI]
+proc tan {x} {
+  set s [sin $x]
+  set c [cos $x]
+  
+  return [expr $s $c /]
+}
+
+puts [tan 2]

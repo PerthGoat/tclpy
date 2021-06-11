@@ -35,7 +35,7 @@ def subcmd(cmd, state):
       cmd[i] = {'WORD': final_val}
     elif 'COMEXP' in c:
       funcbody = c['COMEXP']
-      cmd[i] = runCmd(funcbody, state)
+      cmd[i] = runCmdSet([funcbody], state)
   #print(cmd)
 def F_PUTS(cmd, state):
   assert cmd[0]['WORD'] == 'puts'
@@ -142,16 +142,18 @@ def F_FOR(cmd, state):
   nxt = cmd[3]['WORD']
   body = cmd[4]['WORD']
   
-  set_val = tclparse.TCLParse(set_val).PROGRAM()[0]
-  runCmd(set_val, state)
+  set_val = tclparse.TCLParse(set_val).PROGRAM()
+  runCmdSet(set_val, state)
   
-  #print(set_val)
+  #test_statement_setup = 'if {' + test + '} {' + body + f'\n{nxt} ' + '}'
+  #print(test_statement_setup)
+  while(runCmdSet(tclparse.TCLParse('expr ' + test).PROGRAM(), state)['WORD'] == 'True'):
+    runCmdSet(tclparse.TCLParse(body).PROGRAM(), state)
+    runCmdSet(tclparse.TCLParse(nxt).PROGRAM(), state)
   
-  test_statement_setup = 'if {' + test + '} {' + body + f'\n{nxt} ' + '}'
+  #if_val = tclparse.TCLParse(test_statement_setup).PROGRAM()[0]
+  #raise SystemExit('pas')
   
-  if_val = tclparse.TCLParse(test_statement_setup).PROGRAM()[0]
-  while(F_IF(if_val, state)):
-    pass
 
 def F_IF(cmd, state):
   assert cmd[0]['WORD'] == 'if'
@@ -193,7 +195,7 @@ def runCmd(cmd, state):
   if state.hasProc(cmd[0]['WORD']):
     return runFuncByName(cmd[0]['WORD'], state, cmd[1:])
   elif cmd[0]['WORD'] == 'set':
-    F_SET(cmd, state)
+    return F_SET(cmd, state)
   elif cmd[0]['WORD'] == 'puts':
     F_PUTS(cmd, state)
   elif cmd[0]['WORD'] == 'proc':

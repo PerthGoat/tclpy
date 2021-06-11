@@ -6,6 +6,7 @@ proc pow {x y} {
   
   set res $x
   for {set i 1} {$i $y <} {incr i} {
+    
     set res [expr $res $x *]
   }
   return $res
@@ -22,4 +23,4 @@ proc calcPi {} {
   }
 }
 
-puts [pow 3 2]
+puts [pow 3 1]

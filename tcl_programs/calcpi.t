@@ -23,4 +23,4 @@ proc calcPi {} {
   }
 }
 
-puts [pow 3 1]
+calcPi

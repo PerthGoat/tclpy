@@ -63,7 +63,7 @@ def runFuncByName(name, state, inargs):
   args = funcStuff['args']
   pargs = parseArguments(args)
   body = funcStuff['body']
-  newstate = tclstate.TCLState()
+  newstate = tclstate.TCLState(state)
   p2 = tclparse.TCLParse(body)
   parsed2 = p2.PROGRAM()
   

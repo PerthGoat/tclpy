@@ -1,7 +1,10 @@
 class TCLState:
-  def __init__(self):
+  def __init__(self, proccopy=None): # optionally copy procedures to new state to make global setup
     self.variables = {}
-    self.procedures = {}
+    if proccopy == None:
+      self.procedures = {}
+    else:
+      self.procedures = proccopy.procedures
   
   def setVar(self, name, value):
     if type(name) == dict:
